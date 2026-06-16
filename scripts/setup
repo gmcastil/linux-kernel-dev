@@ -1,0 +1,43 @@
+#!/bin/bash
+
+toolchain_root="https://www.kernel.org/pub/tools/crosstool/files/bin/x86_64/4.9.4"
+toolchain_url="${toolchain_root}/x86_64-gcc-4.9.4-nolibc-x86_64-linux.tar.gz"
+toolchain_shas="${toolchain_root}/sha256sums.asc"
+
+kernel_url="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git"
+kernel_tag="v2.6.34"
+
+function err () {
+    local msg
+    msg="${1}"
+    builtin printf 'Error: %s\n' "${msg}" >&2
+}
+
+# Get the appropriate toolchain
+if ! wget -O "$(basename "${toolchain_url}")" "${toolchain_url}"; then
+    err "Unable to download URL ${toolchain_url}"
+    exit 1
+fi
+
+if ! wget -O "$(basename "${toolchain_shas}")" "${toolchain_shas}"; then
+    err "Unable to download URL ${toolchain_shas}"
+    exit 1
+fi
+
+if ! sha256sum -c "$(basename "${toolchain_shas}")" --ignore-missing; then
+    err "Could not verify SHA256 for $(basename "${toolchain_url}")"
+    exit 1
+fi
+
+# The tarball only contains the one directory, so put that in the repo
+if ! tar -xvzf "$(basename "${toolchain_url}")" --strip-components=1; then
+    err "Could not extract tarball $(basename "${toolchain_url}")"
+    exit 1
+fi
+
+# Get the kernel
+if git clone --depth 1 --branch "${kernel_tag}" "${kernel_url}" "linux-${kernel_tag}"; then
+    err "Unable to clone ${kernel_url} at tag ${kernel_tag}"
+    exit 1
+fi
+

@@ -1,11 +1,15 @@
 #!/bin/bash
 
-toolchain_root="https://www.kernel.org/pub/tools/crosstool/files/bin/x86_64/4.9.4"
-toolchain_url="${toolchain_root}/x86_64-gcc-4.9.4-nolibc-x86_64-linux.tar.gz"
-toolchain_shas="${toolchain_root}/sha256sums.asc"
+# Setup script to create the legacy kernel source tree which the Love book
+# is based on and a modern tag for comparison. The 2.6.34 kernel does not build
+# on Debian 12, even with kbuild toolchains, since there is a dependance upon the
+# libmpfr.so.4 that Debian no longers ships with (and probably other dependacies
+# as well). If I ever get to the point I want to rebuild the older kernel, a
+# CentOS 6 virtual machine is probably the only way to do it).
 
 kernel_url="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git"
-kernel_tag="v2.6.34"
+kernel_legacy_tag="v2.6.34"
+kernel_modern_tag="v6.18"
 
 function err () {
     local msg
@@ -13,31 +17,15 @@ function err () {
     builtin printf 'Error: %s\n' "${msg}" >&2
 }
 
-# Get the appropriate toolchain
-if ! wget -O "$(basename "${toolchain_url}")" "${toolchain_url}"; then
-    err "Unable to download URL ${toolchain_url}"
+# Get the legacy kernel
+if ! git clone --depth 1 --branch "${kernel_legacy_tag}" "${kernel_url}" "linux-${kernel_legacy_tag}"; then
+    err "unable to clone ${kernel_url} at tag ${kernel_legacy_tag}"
     exit 1
 fi
 
-if ! wget -O "$(basename "${toolchain_shas}")" "${toolchain_shas}"; then
-    err "Unable to download URL ${toolchain_shas}"
-    exit 1
-fi
-
-if ! sha256sum -c "$(basename "${toolchain_shas}")" --ignore-missing; then
-    err "Could not verify SHA256 for $(basename "${toolchain_url}")"
-    exit 1
-fi
-
-# The tarball only contains the one directory, so put that in the repo
-if ! tar -xvzf "$(basename "${toolchain_url}")" --strip-components=1; then
-    err "Could not extract tarball $(basename "${toolchain_url}")"
-    exit 1
-fi
-
-# Get the kernel
-if git clone --depth 1 --branch "${kernel_tag}" "${kernel_url}" "linux-${kernel_tag}"; then
-    err "Unable to clone ${kernel_url} at tag ${kernel_tag}"
+# Get the modern kernel
+if ! git clone --depth 1 --branch "${kernel_modern_tag}" "${kernel_url}" "linux-${kernel_modern_tag}"; then
+    err "unable to clone ${kernel_url} at tag ${kernel_modern_tag}"
     exit 1
 fi
 

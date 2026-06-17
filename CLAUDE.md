@@ -59,9 +59,18 @@ a Socratic/mentoring relationship, not a delegation relationship.
 
 ## Setup (user-performed)
 
-- Kernel source: shallow clone of the `v2.6.34` tag from the Linux kernel git history,
-  treated as a read-only reference tree (not a working tree that tracks upstream —
-  no need for full history since we're not diffing tag-to-tag in git).
+**Two-track model** (decided after hitting toolchain friction trying to build 2.6.34
+itself — see "Current state" below): `linux-2.6.34/` is read-only reference material,
+never compiled. All hands-on building/booting/experimenting happens against a
+separate, current kernel clone, which builds natively with the host's existing
+toolchain — no `CROSS_COMPILE`, no container, no chroot.
+
+- `linux-2.6.34/`: shallow clone of the `v2.6.34` tag from the Linux kernel git
+  history, read alongside the book and cross-referenced with cscope. Not a build
+  target — no need for full history since there's no tag-to-tag diffing happening.
+- A current-kernel clone (e.g. `linux-current/`, a recent stable tag): the actual
+  build/boot/experiment target. Native build (`make defconfig && make -j$(nproc)`,
+  no special env needed), booted in QEMU.
 - Build/run target: QEMU, run inside the user's current machine, which is itself a VM
   (nested virtualization). Worth checking early whether `/dev/kvm` is exposed and the
   host CPU flags (`vmx`/`svm`) are visible inside this VM — if not, QEMU falls back to
@@ -73,9 +82,71 @@ a Socratic/mentoring relationship, not a delegation relationship.
   ├── CLAUDE.md
   ├── book-notes/        # one file per chapter: drift notes, open questions, aha's
   ├── linux-2.6.34/      # shallow clone of the book-era kernel tag (read-only reference)
+  ├── linux-current/     # current stable tag — the actual build/boot/experiment target
   ├── experiments/       # kernel modules / patches written while experimenting
   └── vm/                # QEMU boot scripts, kernel .config(s), rootfs/initramfs
   ```
+
+## Current state (as of last session)
+
+- **Toolchain script** (`scripts/setup`): downloads, SHA256-verifies, and extracts
+  kernel.org's prebuilt GCC 4.9.4 crosstool toolchain into `x86_64-linux/` (via
+  `--strip-components=1` to drop the archive's `gcc-4.9.4-nolibc/` wrapper).
+- **Env script** (`scripts/env.sh`): must be `source`d (not executed — it guards
+  against and errors on direct execution). Sets `ARCH=x86_64` and `CROSS_COMPILE`
+  pointing at `x86_64-linux/bin/x86_64-linux-`. Deliberately leaves `HOSTCC` alone.
+- **Kernel source**: shallow-cloned `v2.6.34` tag into `linux-2.6.34/`.
+- `make defconfig` works fine against the GCC 4.9.4 toolchain.
+- `make -j$(nproc)` (the real build) **fails**:
+  `cc1: error while loading shared libraries: libmpfr.so.4: cannot open shared object file`.
+  This toolchain's `cc1` depends on an old libmpfr soname (`.so.4`, mpfr 3.x era)
+  that current Debian no longer packages (`apt-cache search libmpfr` confirms only
+  `libmpfr6` is available, no compat package). This is **not** a 2.6.34-vs-modern-
+  compiler code incompatibility — it's purely a missing runtime dependency of the
+  toolchain itself, and chasing it by building mpfr from source risks cascading into
+  libgmp/libmpc too.
+- **Decision (toolchain)**: abandon the standalone GCC 4.9.4 toolchain for building
+  2.6.34. A CentOS 6 container would resolve gcc's dependency chain correctly (see
+  the now-optional plan below) — but chasing this led to a bigger, second decision:
+- **Decision (strategy) — two-track model**: building/booting the *exact* 2.6.34
+  bits isn't actually necessary for the underlying goal (deep kernel understanding +
+  becoming a stronger C programmer toward the Zynq UART driver). Reading 2.6.34 needs
+  no compilation at all. Hands-on work (modules, syscall experiments, anything the
+  book prompts "try this" on) now happens against a **separate, current kernel
+  clone** instead — native build, zero toolchain friction, same QEMU isolation.
+  `linux-2.6.34/` stays purely as reading material going forward. See "Setup" above
+  for the updated layout.
+- **CentOS 6 container/chroot plan — now optional**, kept only for the satisfaction
+  of seeing the book's exact bits boot once; not required for the main learning loop:
+  1. `docker pull centos:6`, then `docker create` + `docker export` to flatten it
+     into one plain tarball (sidesteps OCI manifest/layer complexity).
+  2. Extract that tarball directly onto `/storage` as a plain rootfs directory.
+  3. Before building: the CentOS 6 base image has no build toolchain pre-installed,
+     and its default yum repo URLs are dead (CentOS 6 is EOL) — repoint yum at
+     `vault.centos.org`, then `yum install gcc make bison flex ncurses-devel
+     elfutils-libelf-devel` (gcc 4.4 + matching binutils/libmpfr/etc. come along
+     correctly resolved as real package dependencies, which is the entire point).
+  4. Bind-mount `linux-2.6.34/` into that rootfs, `chroot` in, and build there using
+     the rootfs's native (period-correct) gcc 4.4 — no `CROSS_COMPILE` needed in this
+     path, since it's the chroot's own system compiler, not a cross toolchain.
+  5. Exit the chroot, unmount the bind mount. The resulting `bzImage` would be used
+     with QEMU completely independently — QEMU doesn't care how it was built.
+  - Chosen over a long-running `docker run` setup because `/storage` is NFS-mounted
+    and `/var` (Docker's default data-root) is small, and Docker's default `overlay2`
+    storage driver is known to be unreliable on NFS-backed storage. If ever revisited,
+    pair a relocated `data-root` with `storage-driver: vfs` rather than fighting
+    overlay2 on NFS.
+- **Next steps (actual priority now)**: clone a current stable kernel tag into
+  `linux-current/`, confirm it builds natively with the host's existing toolchain (no
+  env script involved), boot it in QEMU, and use that as the target for the first
+  hands-on experiment tied to whatever chapter is being read. Still haven't confirmed
+  whether `/dev/kvm` is exposed in this VM for QEMU acceleration (see Setup section
+  above) — worth checking before the first boot attempt.
+- The user also keeps `SETUP.md` at the repo root as their own narrative write-up of
+  this process (distinct from this file). As of this session it only covers the
+  toolchain-download step and hasn't caught up to the `libmpfr` failure or the
+  CentOS 6 pivot — treat this "Current state" section as the authoritative status,
+  not `SETUP.md`, unless the user says they've updated it.
 
 ## Workflow per chapter
 
@@ -85,7 +156,8 @@ a Socratic/mentoring relationship, not a delegation relationship.
 3. Discuss with me: what's still conceptually accurate today, what's changed and why,
    and what to deliberately *not* dig into (dead ends, removed mechanisms, since-obsolete
    optimizations).
-4. For foundational chapters, do a small hands-on experiment — I'll suggest one, the
+4. For foundational chapters, do a small hands-on experiment against the **current**
+   kernel clone (not `linux-2.6.34/`, which is never built) — I'll suggest one, the
    user builds/boots/tests it in the QEMU VM, then we discuss what happened.
 5. Short note in `book-notes/` — just the drift + the takeaway, not a transcript.
 

@@ -1,6 +1,3 @@
-# Ignore the toolchain and the tarball we'll likely be using
-x86_64-linux/
-x86_64-gcc-*.tar.gz
-sha256sums.asc
-
+# Ignore the two source trees
 linux-v2.6.34/
+linux-v6.18/

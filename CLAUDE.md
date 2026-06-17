@@ -81,72 +81,36 @@ toolchain — no `CROSS_COMPILE`, no container, no chroot.
   linux-kernel-dev/
   ├── CLAUDE.md
   ├── book-notes/        # one file per chapter: drift notes, open questions, aha's
-  ├── linux-2.6.34/      # shallow clone of the book-era kernel tag (read-only reference)
-  ├── linux-current/     # current stable tag — the actual build/boot/experiment target
+  ├── exercises/         # standalone C exercises (each with context.md + source)
+  ├── linux-v2.6.34/     # shallow clone of the book-era kernel tag (read-only reference)
+  ├── linux-v6.18/       # shallow clone of v6.18 — the actual build/boot/experiment target
   ├── experiments/       # kernel modules / patches written while experimenting
   └── vm/                # QEMU boot scripts, kernel .config(s), rootfs/initramfs
   ```
 
-## Current state (as of last session)
+## Current state
 
-- **Toolchain script** (`scripts/setup`): downloads, SHA256-verifies, and extracts
-  kernel.org's prebuilt GCC 4.9.4 crosstool toolchain into `x86_64-linux/` (via
-  `--strip-components=1` to drop the archive's `gcc-4.9.4-nolibc/` wrapper).
-- **Env script** (`scripts/env.sh`): must be `source`d (not executed — it guards
-  against and errors on direct execution). Sets `ARCH=x86_64` and `CROSS_COMPILE`
-  pointing at `x86_64-linux/bin/x86_64-linux-`. Deliberately leaves `HOSTCC` alone.
-- **Kernel source**: shallow-cloned `v2.6.34` tag into `linux-2.6.34/`.
-- `make defconfig` works fine against the GCC 4.9.4 toolchain.
-- `make -j$(nproc)` (the real build) **fails**:
-  `cc1: error while loading shared libraries: libmpfr.so.4: cannot open shared object file`.
-  This toolchain's `cc1` depends on an old libmpfr soname (`.so.4`, mpfr 3.x era)
-  that current Debian no longer packages (`apt-cache search libmpfr` confirms only
-  `libmpfr6` is available, no compat package). This is **not** a 2.6.34-vs-modern-
-  compiler code incompatibility — it's purely a missing runtime dependency of the
-  toolchain itself, and chasing it by building mpfr from source risks cascading into
-  libgmp/libmpc too.
-- **Decision (toolchain)**: abandon the standalone GCC 4.9.4 toolchain for building
-  2.6.34. A CentOS 6 container would resolve gcc's dependency chain correctly (see
-  the now-optional plan below) — but chasing this led to a bigger, second decision:
-- **Decision (strategy) — two-track model**: building/booting the *exact* 2.6.34
-  bits isn't actually necessary for the underlying goal (deep kernel understanding +
-  becoming a stronger C programmer toward the Zynq UART driver). Reading 2.6.34 needs
-  no compilation at all. Hands-on work (modules, syscall experiments, anything the
-  book prompts "try this" on) now happens against a **separate, current kernel
-  clone** instead — native build, zero toolchain friction, same QEMU isolation.
-  `linux-2.6.34/` stays purely as reading material going forward. See "Setup" above
-  for the updated layout.
-- **CentOS 6 container/chroot plan — now optional**, kept only for the satisfaction
-  of seeing the book's exact bits boot once; not required for the main learning loop:
-  1. `docker pull centos:6`, then `docker create` + `docker export` to flatten it
-     into one plain tarball (sidesteps OCI manifest/layer complexity).
-  2. Extract that tarball directly onto `/storage` as a plain rootfs directory.
-  3. Before building: the CentOS 6 base image has no build toolchain pre-installed,
-     and its default yum repo URLs are dead (CentOS 6 is EOL) — repoint yum at
-     `vault.centos.org`, then `yum install gcc make bison flex ncurses-devel
-     elfutils-libelf-devel` (gcc 4.4 + matching binutils/libmpfr/etc. come along
-     correctly resolved as real package dependencies, which is the entire point).
-  4. Bind-mount `linux-2.6.34/` into that rootfs, `chroot` in, and build there using
-     the rootfs's native (period-correct) gcc 4.4 — no `CROSS_COMPILE` needed in this
-     path, since it's the chroot's own system compiler, not a cross toolchain.
-  5. Exit the chroot, unmount the bind mount. The resulting `bzImage` would be used
-     with QEMU completely independently — QEMU doesn't care how it was built.
-  - Chosen over a long-running `docker run` setup because `/storage` is NFS-mounted
-    and `/var` (Docker's default data-root) is small, and Docker's default `overlay2`
-    storage driver is known to be unreliable on NFS-backed storage. If ever revisited,
-    pair a relocated `data-root` with `storage-driver: vfs` rather than fighting
-    overlay2 on NFS.
-- **Next steps (actual priority now)**: clone a current stable kernel tag into
-  `linux-current/`, confirm it builds natively with the host's existing toolchain (no
-  env script involved), boot it in QEMU, and use that as the target for the first
-  hands-on experiment tied to whatever chapter is being read. Still haven't confirmed
-  whether `/dev/kvm` is exposed in this VM for QEMU acceleration (see Setup section
-  above) — worth checking before the first boot attempt.
-- The user also keeps `SETUP.md` at the repo root as their own narrative write-up of
-  this process (distinct from this file). As of this session it only covers the
-  toolchain-download step and hasn't caught up to the `libmpfr` failure or the
-  CentOS 6 pivot — treat this "Current state" section as the authoritative status,
-  not `SETUP.md`, unless the user says they've updated it.
+See `PROGRESS.md` for current environment status, chapter progress, and next steps.
+Only read it when explicitly resuming work or when the user references it — it does
+not need to be loaded every session. At the end of each session, update `PROGRESS.md`
+to reflect where things stand before closing out.
+
+## History
+
+- GCC 4.9.4 cross toolchain (kernel.org prebuilt) was attempted for building 2.6.34
+  but abandoned — its `cc1` requires `libmpfr.so.4` which current Debian no longer
+  ships. Not a compiler/kernel incompatibility, purely a missing runtime dependency.
+- Decided against chasing the toolchain fix. Two-track model adopted instead:
+  `linux-v2.6.34/` is read-only reference only; all hands-on building happens against
+  a current kernel clone with the native Debian toolchain.
+- CentOS 6 chroot as a path to building 2.6.34 exactly remains possible but is not
+  required for the main learning goal. See git history for the detailed plan if ever
+  revisited.
+
+## Discussion style
+
+When the user has multiple questions, answer them one at a time and wait for a
+response before moving to the next. Don't batch all answers into one reply.
 
 ## Workflow per chapter
 

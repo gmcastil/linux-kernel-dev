@@ -1,3 +1,6 @@
 # Ignore the two source trees
 linux-v2.6.34/
 linux-v6.18/
+
+# The rootfs is an output product
+vm/rootfs

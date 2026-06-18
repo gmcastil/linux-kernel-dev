@@ -21,3 +21,6 @@ $(BUSYBOX_CLONE_STAMP):
 
 busybox: $(BUSYBOX_BIN)
 
+busybox-clean:
+	rm -f $(BUSYBOX_CLONE_STAMP)
+	rm -rf $(BUSYBOX_DIR)

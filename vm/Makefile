@@ -1,10 +1,8 @@
 SHELL		:= /bin/bash
 
 include mk/busybox.mk
-include mk/init.mk
 include mk/rootfs.mk
-
-
+include mk/initramfs.mk
 
 
 

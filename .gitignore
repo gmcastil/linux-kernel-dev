@@ -4,3 +4,6 @@ linux-v6.18/
 
 # The rootfs is an output product
 vm/rootfs
+vm/initramfs.cpio.gz
+vm/busybox
+

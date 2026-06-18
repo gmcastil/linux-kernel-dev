@@ -1,0 +1,9 @@
+#!/bin/bash
+
+qemu-system-x86_64 \
+	-kernel linux-v6.18/arch/x86/boot/bzImage \
+	-append "console=ttyS0" \
+	-nographic \
+    -initrd vm/initramfs.cpio.gz \
+	-m 512M \
+	-accel tcg

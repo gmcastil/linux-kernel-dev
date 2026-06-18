@@ -1,0 +1,17 @@
+#!/bin/sh
+
+# Need those init functions
+# . /etc/init.d/functions.sh
+
+echo ""
+echo "QEMU Embedded Linux"
+echo "Kernel $(uname -r) on $(uname -m)"
+echo "$(busybox | head -n1)"
+echo ""
+echo "Initializing system...."
+
+for script in /etc/init.d/[0-9]*.sh; do
+    [ -x "${script}" ] && "${script}"
+done
+
+exec setsid cttyhack /bin/sh --login

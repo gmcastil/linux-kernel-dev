@@ -1,0 +1,17 @@
+#
+# /etc/profile
+#
+
+# Set a useful prompt
+export PS1='\u@\h:\w\$ '
+
+# Set up some handy aliases
+alias ls='ls --color=auto --group-directories-first'
+alias ll='ls -Alh'
+
+# Add /sbin and /usr/sbin to PATH if not already there
+export PATH="/bin:/sbin:/usr/bin:/usr/sbin:$PATH"
+
+# History size (if supported)
+export HISTSIZE=1000
+

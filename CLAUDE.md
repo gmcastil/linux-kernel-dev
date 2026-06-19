@@ -73,7 +73,11 @@ either one. Prefer precise lookups instead:
 
 - **C symbols**: use the `cscope`/`ctags` databases (`tags`, `cscope.out`,
   `cscope.files` at each kernel root) to jump straight to a symbol's
-  definition/references, then `Read` only the file(s) that surface.
+  definition/references, then `Read` only the file(s) that surface. These
+  databases are large (the modern tree's `tags` file alone can reach ~1GB,
+  given kbuild's own thorough `--fields=+iaS --extras=+fq` ctags defaults
+  across ~90,000 files) — always query them (`cscope -d -L1 <symbol>`, or
+  `grep` a specific tag name out of `tags`); never `Read` either file whole.
 - **"Where is file X" / "what files match pattern Y"**: grep the pre-built flat
   file manifest (`.file-manifest.txt` at each kernel root) instead of running
   `find` against the live tree. These manifests are large (tens of thousands of

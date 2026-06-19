@@ -12,11 +12,12 @@ kernel. The legacy kernel will not typically build on modern Linux systems, so
 we just use the `tags` and `cscope` output products for navigation and symbol
 lookup.
 
-To create `compile_commands.json` run the following:
+Once that's completed, run the following to build the kernel and then create
+the `compile_commands.json` file:
 
 ```bash
 cd linux-v6.18
 make defconfig
-make -j$(nproc)
+make -j$(nproc) O=build/linux-v6.18
 make compile_commands.json
 ```

@@ -6,26 +6,69 @@
 # libmpfr.so.4 that Debian no longers ships with (and probably other dependacies
 # as well). If I ever get to the point I want to rebuild the older kernel, a
 # CentOS 6 virtual machine is probably the only way to do it).
+#
+# This creates the kernel ctags, cscope files, and a file manifest for easier
+# searching and indexing.
 
 kernel_url="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git"
 kernel_legacy_tag="v2.6.34"
 kernel_modern_tag="v6.18"
 
-function err () {
+function log_err () {
     local msg
     msg="${1}"
     builtin printf 'Error: %s\n' "${msg}" >&2
 }
 
-# Get the legacy kernel
-if ! git clone --depth 1 --branch "${kernel_legacy_tag}" "${kernel_url}" "linux-${kernel_legacy_tag}"; then
-    err "unable to clone ${kernel_url} at tag ${kernel_legacy_tag}"
+function depends_on () {
+    local prog
+    prog="${1}"
+    command -v "${prog}" >/dev/null 2>&1
+    return $?
+}
+
+function setup_kernel_repo () {
+    local kernel_tag
+    kernel_tag="${1}"
+    # Shallow clone the kernel source tree
+    if ! git clone --depth 1 --branch "${kernel_tag}" "${kernel_url}" "linux-${kernel_tag}"; then
+        log_err "Unable to clone ${kernel_url} at tag ${kernel_tag}"
+        return 1
+    fi
+    # Create the cscope, ctags, and file manifest
+    if ! pushd "linux-${kernel_tag}" >/dev/null; then
+        log_err "Failed to change working directory to linux-${kernel_tag}"
+        return 1
+    else
+        make distclean || \
+            { log_err "Kernel make distclean error"; return 1; }
+        make ctags || \
+            { log_err "Kernel make ctags error"; return 1; }
+        make cscope || \
+            { log_err "Kernel make cscope error"; return 1; }
+        find . -path './.git' -prune -o -type f -print > .file-manifest.txt || \
+            { log_err "Failed to generate file manifest for linux-${kernel_tag}"; return 1; }
+        # This should never fail
+        popd >/dev/null || return 1
+    fi
+    return 0
+}
+
+# Make sure a couple of things exist before proceed
+depends_on git || \
+    { log_err "Could not find git in PATH."; exit 1; }
+depends_on ctags || \
+    { log_err "Could not find ctags in PATH."; exit 1; }
+depends_on cscope || \
+    { log_err "Could not find cscope in PATH."; exit 1; }
+
+if ! setup_kernel_repo "${kernel_legacy_tag}"; then
+    log_err "Unable to setup kernel tag ${kernel_legacy_tag}"
     exit 1
 fi
 
-# Get the modern kernel
-if ! git clone --depth 1 --branch "${kernel_modern_tag}" "${kernel_url}" "linux-${kernel_modern_tag}"; then
-    err "unable to clone ${kernel_url} at tag ${kernel_modern_tag}"
+if ! setup_kernel_repo "${kernel_modern_tag}"; then
+    log_err "Unable to setup kernel tag ${kernel_modern_tag}"
     exit 1
 fi
 

@@ -42,8 +42,8 @@ function setup_kernel_repo () {
     else
         make distclean || \
             { log_err "Kernel make distclean error"; return 1; }
-        make ctags || \
-            { log_err "Kernel make ctags error"; return 1; }
+        make tags || \
+            { log_err "Kernel make tags error"; return 1; }
         make cscope || \
             { log_err "Kernel make cscope error"; return 1; }
         find . -path './.git' -prune -o -type f -print > .file-manifest.txt || \
@@ -62,13 +62,29 @@ depends_on ctags || \
 depends_on cscope || \
     { log_err "Could not find cscope in PATH."; exit 1; }
 
-if ! setup_kernel_repo "${kernel_legacy_tag}"; then
+# Setup the two kernels in parallel - no reason to double the time to market
+setup_kernel_repo "${kernel_legacy_tag}" &
+pid_legacy=$!
+
+setup_kernel_repo "${kernel_modern_tag}" &
+pid_modern=$!
+
+# Now we wait until both are finished and then check the result
+wait "${pid_legacy}"
+rc_legacy=$?
+wait "${pid_modern}"
+rc_modern=$?
+
+exit_status=0
+if [[ "${rc_legacy}" -ne 0 ]]; then
     log_err "Unable to setup kernel tag ${kernel_legacy_tag}"
-    exit 1
+    exit_status=1 
 fi
 
-if ! setup_kernel_repo "${kernel_modern_tag}"; then
+if [[ "${rc_modern}" -ne 0 ]]; then
     log_err "Unable to setup kernel tag ${kernel_modern_tag}"
-    exit 1
+    exit_status=1 
 fi
+
+exit ${exit_status}
 

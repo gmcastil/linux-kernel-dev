@@ -140,8 +140,18 @@ case any of these classes of bug recur elsewhere:
    as `scripts/setup` already runs them.
 2. Generate `compile_commands.json` against the new external build dir (not the
    old in-tree build — no point generating it twice).
-3. Complete exercise 01 (function pointers — `exercises/01-function-pointers/`).
-4. Move to chapter 2.
+3. ~~Complete exercise 01 (function pointers — `exercises/01-function-pointers/`).~~ Done.
+4. Copy `linux-v6.18/.clang-format` to the repo root so conform.nvim's
+   `clang_format` formatter (no custom `args`, so it already respects
+   file-based style discovery) picks up kernel style automatically. Needs a
+   fresh nvim session to take effect. Once active, run it over
+   `exercises/01-function-pointers/main.c` to finish the kernel-style cleanup
+   started this session — confirm it fixes `main()`'s brace placement (still
+   on the same line as the signature), `main()`'s empty `()` → `(void)`, and
+   the space-before-paren on every function definition (`serial_read (` →
+   `serial_read(`), none of which got caught by the manual brace-placement
+   edits already made to the other functions.
+5. Move to chapter 2.
 
 ## Chapter progress
 
@@ -153,4 +163,4 @@ case any of these classes of bug recur elsewhere:
 
 | Exercise                         | Status  |
 |----------------------------------|---------|
-| 01 — function pointers / vtables | Pending |
+| 01 — function pointers / vtables | Done    |

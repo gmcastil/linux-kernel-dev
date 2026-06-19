@@ -1,10 +1,9 @@
 SHELL		:= /bin/bash
+VM_SCRIPTS_DIR	:= scripts
 
 include mk/busybox.mk
 include mk/rootfs.mk
 include mk/initramfs.mk
-
-
 
 
   # Target: busybox

@@ -19,3 +19,11 @@ make defconfig
 make -j$(nproc)
 make compile_commands.json
 ```
+
+and then also, to enable navigation with the LLM easier, create the same cscope and tags files.
+
+```bash
+cd linux-v6.18
+make cscope
+make tags
+```

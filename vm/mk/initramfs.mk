@@ -3,9 +3,9 @@ INITRAMFS	:= initramfs.cpio.gz
 .PHONY: initramfs
 
 $(INITRAMFS): $(ROOTFS_STAGED_STAMP)
-	cd $(ROOTFS_DIR) && find . | cpio -o -H newc | gzip -9 > ../$(INITRAMFS)
 
 initramfs: $(INITRAMFS)
+	fakeroot $(VM_SCRIPTS_DIR)/build-initramfs $(ROOTFS_DIR) $(INITRAMFS)
 
 initramfs-clean:
 	rm -f $(INITRAMFS)

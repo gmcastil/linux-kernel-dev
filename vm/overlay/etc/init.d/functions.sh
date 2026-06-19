@@ -18,7 +18,7 @@ warn () {
 }
 
 action () {
-    desc=="${1}"
+    desc="${1}"
     shift
     printf '%-60s' "${desc}" >&1
     output="$("$@" 2>&1)"

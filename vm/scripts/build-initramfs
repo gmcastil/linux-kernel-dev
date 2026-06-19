@@ -1,0 +1,54 @@
+#!/bin/bash
+
+log_err () {
+    local msg
+    msg="${1}"
+    builtin printf 'Error: %s\n' "${msg}" >&2
+}
+
+usage () {
+    {
+        builtin printf '%s\n' "Usage: $(basename "$0") ROOTFS_DIR INITRAMFS_PATH"
+        builtin printf '%s\n' ""
+        builtin printf '%s\n' "Build a gzip-compressed cpio initramfs from a staged rootfs tree."
+        builtin printf '%s\n' "Must be run under fakeroot, since it chowns everything to root:root"
+        builtin printf '%s\n' "before constructing the cpio archive."
+        builtin printf '%s\n' ""
+        builtin printf '%s\n' "ROOTFS_DIR      Path to the staged rootfs directory to package"
+        builtin printf '%s\n' "INITRAMFS_PATH  Path to write the resulting initramfs.cpio.gz to"
+    } >&2
+}
+
+# This is going to get run from a Makefile most likely, so run so we can see it
+set -x
+
+if [[ $# -ne 2 ]]; then
+    usage
+    exit 1
+fi
+
+rootfs_dir="${1}"
+initramfs="$(readlink -f "${2}")"
+out_dir="$(dirname "${initramfs}")"
+
+if [[ ! -d "${rootfs_dir}" ]]; then
+    { log_err "No location provided for rootfs or directory does not exist"; exit 1; }
+fi
+
+if [[ ! -w "${out_dir}" ]]; then
+    msg="Directory $(readlink -e "${out_dir}") does not exist or is not writable by current user"
+    { log_err "${msg}"; exit 1; }
+fi
+
+# Need to change all the root permissions inside fakeroot at the same time that
+# the cpio archive is created
+if ! chown -R root:root "${rootfs_dir}"; then
+    { log_err "Unable to change permissions for ${rootfs_dir}"; exit 1; }
+fi
+
+pushd "${rootfs_dir}" >/dev/null ||
+    { log_err "Could not enter ${rootfs_dir} - check permissions"; exit 1; }
+
+find . | cpio -o -H newc | gzip -9 > "${initramfs}"
+
+popd || exit

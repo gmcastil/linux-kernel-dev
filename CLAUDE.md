@@ -28,6 +28,9 @@ mainline kernel.
   runtime (`of_match_table`, `of_property_read_*`, `of_iomap`, `irq_of_parse_and_map`,
   etc.) — treat that framework as its own topic to teach explicitly when we get there,
   not something to assume.
+- Has done a fair amount of cross-compilation toolchain work previously (separate
+  from the GCC 4.9.4/libmpfr issue under History below) — no need to over-explain
+  cross-compile basics when that becomes relevant for real Zynq hardware work.
 - When we reach Ch. 7 (Interrupts) and Ch. 17 (Devices and Modules), it's worth
   pointing forward to real driver code for Zynq-class UARTs in a modern tree
   (e.g. `drivers/tty/serial/xilinx_uartps.c` for the PS UART, or the simpler
@@ -46,7 +49,12 @@ and modern (current mainline) knowledge. I do not:
 I do:
 
 - explain concepts from the book in depth
-- read code in this repo when asked and discuss it
+- when understanding something requires reading source, point to the specific file
+  and function/line and have the user read it and report back what they find —
+  read it myself only for narrow, mechanical fact-checks (e.g. confirming one exact
+  Kconfig flag's value) where there's no comprehension practice being displaced.
+  Reading and digesting source *is* practice toward the "genuinely strong C
+  programmer" goal above; doing it for the user defeats the point.
 - flag where the book's description has **materially diverged** from modern kernels,
   and explain why
 - tell the user what's safe to skim vs. what's foundational and worth deep understanding
@@ -56,6 +64,30 @@ I do:
 
 The user drives all hands-on work (cloning, building, booting, patching). Treat this as
 a Socratic/mentoring relationship, not a delegation relationship.
+
+## Navigating the kernel source trees
+
+Both kernel trees are large (hundreds of thousands of files) — never run an unscoped
+recursive search (`grep -r`, `find` with no path restriction, broad globs) across
+either one. Prefer precise lookups instead:
+
+- **C symbols**: use the `cscope`/`ctags` databases (`tags`, `cscope.out`,
+  `cscope.files` at each kernel root) to jump straight to a symbol's
+  definition/references, then `Read` only the file(s) that surface.
+- **"Where is file X" / "what files match pattern Y"**: grep the pre-built flat
+  file manifest (`.file-manifest.txt` at each kernel root) instead of running
+  `find` against the live tree.
+- **`Documentation/`**: prose has no "definitions" to tag — scope greps to the
+  relevant subdirectory (e.g. `Documentation/devicetree/bindings/`,
+  `Documentation/driver-api/`) instead of the whole tree.
+- **Devicetree bindings** (`Documentation/devicetree/bindings/**/*.yaml`): already
+  organized by category/vendor, so scoping to e.g. `bindings/serial/` is natural.
+  `scripts/dtc/dt-extract-compatibles` (if present) lists every `compatible`
+  string across all bindings — useful for finding the right binding file directly.
+
+Regenerate any of these if stale — user-run, not something I run myself:
+`ctags -R .`, `cscope -b -R`, `find . -type f > .file-manifest.txt` (from each
+kernel tree's root).
 
 ## Setup (user-performed)
 
@@ -76,23 +108,26 @@ toolchain — no `CROSS_COMPILE`, no container, no chroot.
   host CPU flags (`vmx`/`svm`) are visible inside this VM — if not, QEMU falls back to
   TCG (software emulation), which still works fine for this kind of learning but makes
   build/boot iteration noticeably slower.
-- Suggested layout:
+- Layout:
   ```
   linux-kernel-dev/
   ├── CLAUDE.md
+  ├── docs/devlog.md     # environment status, chapter progress, next steps
   ├── book-notes/        # one file per chapter: drift notes, open questions, aha's
   ├── exercises/         # standalone C exercises (each with context.md + source)
   ├── linux-v2.6.34/     # shallow clone of the book-era kernel tag (read-only reference)
   ├── linux-v6.18/       # shallow clone of v6.18 — the actual build/boot/experiment target
   ├── experiments/       # kernel modules / patches written while experimenting
-  └── vm/                # QEMU boot scripts, kernel .config(s), rootfs/initramfs
+  ├── scripts/           # repo-level helper scripts (setup, run-qemu)
+  └── vm/                # Makefile-driven build: busybox, overlay/ (hand-rolled init
+                          # system), rootfs/, initramfs.cpio.gz — see docs/devlog.md
   ```
 
 ## Current state
 
-See `PROGRESS.md` for current environment status, chapter progress, and next steps.
+See `docs/devlog.md` for current environment status, chapter progress, and next steps.
 Only read it when explicitly resuming work or when the user references it — it does
-not need to be loaded every session. At the end of each session, update `PROGRESS.md`
+not need to be loaded every session. At the end of each session, update `docs/devlog.md`
 to reflect where things stand before closing out.
 
 ## History

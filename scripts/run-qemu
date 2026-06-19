@@ -1,9 +1,40 @@
 #!/bin/bash
 
+# There are a zillion options for QEMU:
+#
+# -netdev user,id=net0
+#   This defines how QEMU implements the network on the host side
+#
+# -device virtio-net-pci,netdev=net0,romfile=""
+#   This defines the virtual NIC that the guest sees and which driver
+#   needs to be loaded (there are a number of kernel config options
+#   that need to be set for this to work properly).
+#
+# -serial stdio
+#   Redirect the virtual serial port to the host stdio
+#
+# -display none
+#   No video output (since we're redirecting everything out the serial port
+#   keeping the display would just open an empty window). Interesting to
+#   note that there are interesting options like gtk+ where you can open GTK
+#   windows and have clipboard functionality too.
+#
+# -monitor telnet:127.0.0.1:55555,server,nowait
+#   Runs the QEMU monitor application on localhost so you can telnet to it
+#
+# -accel tcg
+#   Basically software emulation - this can get changed to KVM for hardware
+#   acceleration, if the host supports it (i.e., look at /dev/kvm on the host)
+
 qemu-system-x86_64 \
-	-kernel linux-v6.18/arch/x86/boot/bzImage \
-	-append "console=ttyS0" \
-	-nographic \
+    -kernel linux-v6.18/arch/x86/boot/bzImage \
     -initrd vm/initramfs.cpio.gz \
-	-m 512M \
-	-accel tcg
+    -append "console=ttyS0" \
+    -netdev user,id=net0 \
+    -device virtio-net-pci,netdev=net0,romfile="" \
+    -serial stdio \
+    -display none \
+    -monitor telnet:127.0.0.1:55555,server,nowait \
+    -m 512M \
+    -accel tcg
+

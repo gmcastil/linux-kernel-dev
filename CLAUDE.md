@@ -76,7 +76,10 @@ either one. Prefer precise lookups instead:
   definition/references, then `Read` only the file(s) that surface.
 - **"Where is file X" / "what files match pattern Y"**: grep the pre-built flat
   file manifest (`.file-manifest.txt` at each kernel root) instead of running
-  `find` against the live tree.
+  `find` against the live tree. These manifests are large (tens of thousands of
+  lines, multi-MB) — only ever `grep` one for a specific name/pattern; never
+  `Read` one in full. A flat file list isn't useful to skim, and reading the
+  whole thing would burn an enormous amount of context for no benefit.
 - **`Documentation/`**: prose has no "definitions" to tag — scope greps to the
   relevant subdirectory (e.g. `Documentation/devicetree/bindings/`,
   `Documentation/driver-api/`) instead of the whole tree.

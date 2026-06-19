@@ -4,7 +4,7 @@ BUSYBOX_BIN		:= $(BUSYBOX_DIR)/busybox
 
 BUSYBOX_URL		:= https://git.busybox.net/busybox
 BUSYBOX_TAG		:= 1_37_stable
-BUSYBOX_CLONE_STAMP	:= $(BUSYBOX_DIR)/.busybox_clone_stamp
+BUSYBOX_CLONE_STAMP	:= .busybox_clone_stamp
 
 .PHONY: busybox
 

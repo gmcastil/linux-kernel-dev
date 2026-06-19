@@ -5,6 +5,7 @@ include mk/busybox.mk
 include mk/rootfs.mk
 include mk/initramfs.mk
 
+vm-clean: busybox-clean rootfs-clean initramfs-clean
 
   # Target: busybox
   # Depends on: busybox source (clone/tarball)

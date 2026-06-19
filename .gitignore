@@ -7,3 +7,5 @@ vm/rootfs
 vm/initramfs.cpio.gz
 vm/busybox
 
+# In general, all stamp files follow this pattern
+.*.stamp

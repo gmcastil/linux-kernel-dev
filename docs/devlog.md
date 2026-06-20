@@ -129,6 +129,34 @@ case any of these classes of bug recur elsewhere:
   primarily for Neovim navigation, only secondarily for token economy — just
   always query (`cscope -d -L1`/`grep`), never read either file whole.
 
+## Chapter 2 — started this session
+
+- Read ch02; discussed the four new top-level directories vs 2.6.34
+  (`certs/`, `io_uring/`, `LICENSES/`, `rust/`) — captured in
+  `book-notes/ch02.md`.
+- Worked through the chapter's "what makes kernel C different" list one item
+  at a time: inline functions, inline assembly, branch annotation, no
+  floating point, fixed-size stack.
+- `experiments/` introduced as a new top-level directory, distinct from
+  `exercises/`: holds real out-of-tree kernel modules built against
+  `linux-v6.18` headers, vs `exercises/`'s standalone userspace C — see the
+  layout note in CLAUDE.md.
+- Four exercise/experiment specs written this session (`context.md` only —
+  not yet implemented or built; see Exercises/Experiments tables below):
+  - `exercises/02-inline-functions-and-asm/` — `static inline` MMIO-style
+    accessors wrapping inline asm, plus `rdtsc`, verifying actual inlining
+    via `objdump` across `-O0`/`-O2`/`noinline`/`always_inline`.
+  - `exercises/03-branch-annotation/` — `likely`/`unlikely`, plus using
+    `gcc -E` to read real preprocessor output and `gcc -S` to compare codegen
+    with/without the hint.
+  - `experiments/01-no-floating-point/` — module that tries to use `float` in
+    kernel code (Part A is build-only, no boot needed), then the sanctioned
+    `kernel_fpu_begin()`/`kernel_fpu_end()` version.
+  - `experiments/02-stack-overflow-guard-page/` — deliberately overflow the
+    16KB kernel stack via deep recursion to observe `CONFIG_VMAP_STACK`'s
+    guard-page fault. Needs a working `insmod`/boot workflow; expected to
+    panic the VM on purpose — that's the point.
+
 ## Next steps
 
 1. Rebuild `linux-v6.18/` using an external build directory (`make O=<dir> ...`)
@@ -151,16 +179,34 @@ case any of these classes of bug recur elsewhere:
    the space-before-paren on every function definition (`serial_read (` →
    `serial_read(`), none of which got caught by the manual brace-placement
    edits already made to the other functions.
-5. Move to chapter 2.
+5. ~~Move to chapter 2.~~ Done — started this session, see Chapter 2 section above.
+6. Implement and run exercises 02–03 and experiments 01–02 (build each;
+   experiment 02 also needs an `insmod` + `dmesg` pass in the booted VM).
+7. Once those are run, add the short drift + takeaway note to
+   `book-notes/ch02.md` per the chapter workflow's step 5 — covering inline
+   functions/asm, branch annotation, the FP restriction, and the fixed stack.
 
 ## Chapter progress
 
-| Chapter | Status | Notes                |
-|---------|--------|----------------------|
-| Ch 01   | Done   | `book-notes/ch01.md` |
+| Chapter | Status      | Notes                |
+|---------|-------------|----------------------|
+| Ch 01   | Done        | `book-notes/ch01.md` |
+| Ch 02   | In progress | `book-notes/ch02.md` |
 
 ## Exercises
 
-| Exercise                         | Status  |
-|----------------------------------|---------|
-| 01 — function pointers / vtables | Done    |
+| Exercise                              | Status                          |
+|----------------------------------------|----------------------------------|
+| 01 — function pointers / vtables       | Done                             |
+| 02 — inline functions and inline asm   | Spec written, not yet built      |
+| 03 — branch annotation                 | Spec written, not yet built      |
+
+## Experiments
+
+Real out-of-tree kernel modules built against `linux-v6.18` headers — see the
+`exercises/` vs `experiments/` distinction in CLAUDE.md's layout.
+
+| Experiment                          | Status                       |
+|--------------------------------------|-------------------------------|
+| 01 — no floating point in the kernel | Spec written, not yet built  |
+| 02 — stack overflow / guard page     | Spec written, not yet built  |

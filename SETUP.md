@@ -16,8 +16,18 @@ Once that's completed, run the following to build the kernel and then create
 the `compile_commands.json` file:
 
 ```bash
-cd linux-v6.18
-make defconfig
-make -j$(nproc) O=build/linux-v6.18
-make compile_commands.json
+mkdir -p /dev/shm/build-linux-v6.18
+ln -s /dev/shm/build-linux-v6.18 build/linux-v6.18
+
+make -C linux-v6.18 O=../build/linux-v6.18 defconfig
+make -C linux-v6.18 -j$(nproc) O=../build/linux-v6.18
+make -C linux-v6.18 O=../build/linux-v6.18 compile_commands.json
+```
+
+Then after finishing the build, remove the symlink to the tmpfs and move the output
+products to the local drive
+
+```bash
+rm build/linux-v6.18
+rsync -avzrP /dev/shm/build-linux-v6.18 build/linux-v6.18
 ```

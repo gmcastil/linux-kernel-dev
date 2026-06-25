@@ -1,6 +1,7 @@
-# Ignore the two source trees
+# Ignore the two source trees and the build directory
 linux-v2.6.34/
 linux-v6.18/
+build/
 
 # The rootfs is an output product
 vm/rootfs
@@ -10,3 +11,5 @@ vm/busybox
 # In general, all stamp files follow this pattern
 */.*.stamp
 .*.stamp
+
+*_md_ltex.json

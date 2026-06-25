@@ -27,7 +27,7 @@
 #   acceleration, if the host supports it (i.e., look at /dev/kvm on the host)
 
 qemu-system-x86_64 \
-    -kernel linux-v6.18/arch/x86/boot/bzImage \
+    -kernel build/build-linux-v6.18/arch/x86/boot/bzImage \
     -initrd vm/initramfs.cpio.gz \
     -append "console=ttyS0" \
     -netdev user,id=net0 \
@@ -37,4 +37,3 @@ qemu-system-x86_64 \
     -monitor telnet:127.0.0.1:55555,server,nowait \
     -m 512M \
     -accel tcg
-

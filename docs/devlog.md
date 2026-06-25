@@ -159,30 +159,19 @@ case any of these classes of bug recur elsewhere:
 
 ## Next steps
 
-1. Rebuild `linux-v6.18/` using an external build directory (`make O=<dir> ...`)
-   instead of in-tree, so the source tree stays permanently clean — 32 cores
-   available, should be quick. Remember `scripts/run-qemu` currently hardcodes
-   `linux-v6.18/arch/x86/boot/bzImage`; that path moves to
-   `<builddir>/arch/x86/boot/bzImage` once this lands. Do **not** pass `O=` to
-   the `tags`/`cscope`/manifest steps (see finding above) — those stay exactly
-   as `scripts/setup` already runs them.
-2. Generate `compile_commands.json` against the new external build dir (not the
-   old in-tree build — no point generating it twice).
+1. ~~Rebuild `linux-v6.18/` using an external build directory.~~ Done — built to `build/build-linux-v6.18/`, symlink and clangd working.
+2. ~~Generate `compile_commands.json` against the new external build dir.~~ Done.
 3. ~~Complete exercise 01 (function pointers — `exercises/01-function-pointers/`).~~ Done.
-4. Copy `linux-v6.18/.clang-format` to the repo root so conform.nvim's
-   `clang_format` formatter (no custom `args`, so it already respects
-   file-based style discovery) picks up kernel style automatically. Needs a
-   fresh nvim session to take effect. Once active, run it over
-   `exercises/01-function-pointers/main.c` to finish the kernel-style cleanup
-   started this session — confirm it fixes `main()`'s brace placement (still
-   on the same line as the signature), `main()`'s empty `()` → `(void)`, and
-   the space-before-paren on every function definition (`serial_read (` →
-   `serial_read(`), none of which got caught by the manual brace-placement
-   edits already made to the other functions.
-5. ~~Move to chapter 2.~~ Done — started this session, see Chapter 2 section above.
-6. Implement and run exercises 02–03 and experiments 01–02 (build each;
+4. Update `scripts/run-qemu` to point to `build/build-linux-v6.18/arch/x86/boot/bzImage`
+   (currently still hardcodes `linux-v6.18/arch/x86/boot/bzImage`).
+5. Copy `linux-v6.18/.clang-format` to the repo root so conform.nvim's
+   `clang_format` formatter picks up kernel style automatically. Once active,
+   run it over `exercises/01-function-pointers/main.c` to finish the
+   kernel-style cleanup started last session.
+6. ~~Move to chapter 2.~~ Done — started last session, see Chapter 2 section above.
+7. Implement and run exercises 02–03 and experiments 01–02 (build each;
    experiment 02 also needs an `insmod` + `dmesg` pass in the booted VM).
-7. Once those are run, add the short drift + takeaway note to
+8. Once those are run, add the short drift + takeaway note to
    `book-notes/ch02.md` per the chapter workflow's step 5 — covering inline
    functions/asm, branch annotation, the FP restriction, and the fixed stack.
 
